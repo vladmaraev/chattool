@@ -117,22 +117,22 @@
         </plugin>
     </plugins>
     <resources>
-        <resource>
-        <targetPath>mazegame</targetPath>
-            <directory>experimentresources${file.separator}mazegame</directory>
-            <includes>
-              <include>**${file.separator}*.*</include>
-              <include>**${file.separator}*.*</include>
-           </includes>
-        </resource>
-        <resource>
-        <targetPath></targetPath>
-            <directory>experimentresources${file.separator}mazegame</directory>
-            <includes>
-              <include>**${file.separator}*.*</include>
-              <include>**${file.separator}*.*</include>
-           </includes>
-        </resource>
+        <!-- <resource> -->
+        <!-- <targetPath>mazegame</targetPath> -->
+        <!--     <directory>experimentresources${file.separator}mazegame</directory> -->
+        <!--     <includes> -->
+        <!--       <include>**${file.separator}*.*</include> -->
+        <!--       <include>**${file.separator}*.*</include> -->
+        <!--    </includes> -->
+        <!-- </resource> -->
+        <!-- <resource> -->
+        <!-- <targetPath></targetPath> -->
+        <!--     <directory>experimentresources${file.separator}mazegame</directory> -->
+        <!--     <includes> -->
+        <!--       <include>**${file.separator}*.*</include> -->
+        <!--       <include>**${file.separator}*.*</include> -->
+        <!--    </includes> -->
+        <!-- </resource> -->
         <resource>
             <targetPath>facetask${file.separator}lists</targetPath>
             <directory>experimentresources${file.separator}facetask${file.separator}lists</directory>

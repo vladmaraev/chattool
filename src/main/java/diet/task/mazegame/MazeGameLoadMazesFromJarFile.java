@@ -41,7 +41,7 @@ public class MazeGameLoadMazesFromJarFile {
         //.addElement("mazeset_12_easy_mazes_reverseorder");
         setNames.addElement("mazeset_12_mazes");
         setNames.addElement("mazeset_16_mazes");
-        setNames.addElement("mazeset_verysimplified_setof5");
+        // setNames.addElement("mazeset_verysimplified_setof5");
         setNames.addElement("CUSTOM");
         
         
