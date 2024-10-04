@@ -20,6 +20,7 @@ import java.util.Random;
 /**
  *
  * @author LX1C
+ * @author vladmaraev
  */
 public class Telegram_Dyadic_Escalation extends TelegramController{
 
@@ -77,10 +78,12 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
              long numberOfTurns = this.htTurns.get(sender);
              numberOfTurns++;
              this.htTurns.put(sender, numberOfTurns);
-             
+             long interventionType = -1;
+            
              if(this.mode==normalconversation){
-                 boolean isStatement = generateCheckIfStatement(sender,text);
-                 if (!isStatement) {
+                 interventionType = generateCheckIfStatement(sender,text);
+                 // Conversation.printWSln("Main", sender.getUsername());
+                 if (interventionType < 0) {
                      c.telegram_relayMessageTextToOtherParticipants(sender, tmfc);
                  } else {
                      this.mode = this.emptyingqueue;
@@ -109,22 +112,25 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
 // punctuation). Alternatively, it would be nice to have the name of the
 // user but it seems even more tricky.
 // 3. Insert "Listen, " before statements (i.e. turns that do not finish
-// with "?")
-                             boolean containsI = (" " +  text + " ").toLowerCase().contains(" i ");
-                             if (containsI) {
+                 // with "?")
+                             if (interventionType == 1) {
                                  text = " " + text + " ";
                                  text = text.replaceAll("I\\s+", "You ")
                                      .replaceAll("i\\s+", "you ")
                                      .strip();
-                             } else {
-                                 Random rand = new Random();
-                                 int n = rand.nextInt(2);
-                                 if (n == 0) {
-                                     text = text + ", p2";
+                             } else if (interventionType == 2) {
+                                 String targetP;
+                                 if (sender.getUsername().equals("p1")) {
+                                     targetP = "p2";
                                  } else {
-                                     text = "Listen, " + text;
+                                     targetP = "p1";
                                  }
+                                 text = text + ", " + targetP;
                              }
+                             else if (interventionType == 3) {
+                                text = "Listen, " + text;
+                             }
+                 
                              c.telegram_sendArtificialTurnFromApparentOriginToPermittedParticipants(sender, text);
                              this.timestampOfMostRecentQueueSend = new Date().getTime();
                              this.messageQueue.remove(tmfc);
@@ -173,24 +179,44 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
     
     
     
-    public synchronized boolean generateCheckIfStatement(TelegramParticipant sender, String t){
+    public synchronized long generateCheckIfStatement(TelegramParticipant sender, String t){
          if(this.mode!=normalconversation) {
              
              Conversation.printWSln("Main", "Turn by "+sender.getConnection().telegramID+ " can`t be clarified - not in mode 0" );
-             return false;
+             return -1;
          }
          long turnOfLastInterventionToParticipant = this.htTurnOfLastIntervention.get(sender);
          long turnsProducedByParticipant = this.htTurns.get(sender);
          long turnsSinceLastIntervention = turnsProducedByParticipant - turnOfLastInterventionToParticipant;
          if(turnsSinceLastIntervention<  turnsElapsedBeforeClarification){
              Conversation.printWSln("Main", "Turn by "+sender.getConnection().telegramID+ " can`t be clarified - Only "+turnsSinceLastIntervention+ "  turns since last intervention" );
-             return false;
+             return -1;
          }
          
-         boolean isStatement = false;
+        long produceIntervention = -1;
+        Random rand = new Random();
+        int flipCoin = rand.nextInt(3);
+        String haystack = " " + t.toLowerCase();
+
+        if (flipCoin == 0) { // search for I in statements
+            boolean containsI = (haystack + " ").contains(" i ");
+            if (containsI) {
+                produceIntervention = 1;
+            }
+        } else if (flipCoin == 1) {
+            if  (!(haystack.endsWith("?"))) {
+                produceIntervention = 2;
+         }
+        }
+         else {
+            if  (!(haystack.endsWith("?"))) {
+                produceIntervention = 3;
+         }
+        }
 
 
-         String haystack = " " + t.toLowerCase();
+        
+
 
 // 1. When the original message contains "I" + it does not finish with "?",
 // then substitute "you" for "I".
@@ -201,9 +227,6 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
 // with "?")
 
          // Conversation.printWSln("Main", "Haystack: "+haystack+ "    !Endswith: "+!(haystack.endsWith("?")));
-         if  (!(haystack.endsWith("?"))) {
-             isStatement = true;
-         }
          
          
          // for(int i =0; i < possibleTargets.size(); i++){
@@ -218,9 +241,9 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
          // }
 
          
-         if(!isStatement){
+         if(produceIntervention < 0){
              Conversation.printWSln("Main", "Turn by "+sender.getConnection().telegramID+ " can`t be clarified - doesn`t contain target");
-             return false;
+             return produceIntervention;
          } else {
          
          this.detectedParticipant = sender;
@@ -230,7 +253,7 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
        
          Conversation.printWSln("Main", "Target identified. Immediately fixing.");
 
-         return true;
+         return produceIntervention;
          // this.mode=this.emptyingqueue;
          }
          
