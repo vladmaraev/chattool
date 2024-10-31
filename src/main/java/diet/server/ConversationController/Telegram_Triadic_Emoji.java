@@ -16,21 +16,23 @@ import java.util.Date;
 import java.util.Hashtable;
 import java.util.Vector;
 import java.util.Random;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  *
  * @author LX1C
  * @author vladmaraev
  */
-public class Telegram_Dyadic_Escalation extends TelegramController{
+public class Telegram_Triadic_Emoji extends TelegramController{
 
-    public Telegram_Dyadic_Escalation(Conversation c) {
+    public Telegram_Triadic_Emoji(Conversation c) {
         super(c);
         // Thread t = new Thread(){public void run(){loop();}};
         // t.start();
     }
 
-    public Telegram_Dyadic_Escalation(Conversation c, long istypingtimeout) {
+    public Telegram_Triadic_Emoji(Conversation c, long istypingtimeout) {
         super(c, istypingtimeout);
         // Thread t = new Thread(){public void run(){loop();}};
         // t.start();
@@ -38,7 +40,7 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
     }
 
     public void telegram_participantJoinedConversation(TelegramParticipant p) {
-        if(c.getParticipants().getAllParticipants().size()==2) {
+        if(c.getParticipants().getAllParticipants().size()==3) {
             
              pp.createNewSubdialogue(c.getParticipants().getAllParticipants());
              //this.itnt.addGroupWhoAreMutuallyInformedOfTyping(c.getParticipants().getAllParticipants());
@@ -57,7 +59,7 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
         
        // c.telegram_sendInstructionToParticipantWithForcedKeyboardButtons(p, "This is a question",  new String[]{"option1", "option2", "option3", "option4", "option5", "option6", "option7"},3);
         
-       if(c.getParticipants().getAllParticipants().size()==2) {
+       if(c.getParticipants().getAllParticipants().size()==3) {
             
              pp.createNewSubdialogue(c.getParticipants().getAllParticipants());
              //this.itnt.addGroupWhoAreMutuallyInformedOfTyping(c.getParticipants().getAllParticipants());
@@ -113,23 +115,18 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
 // user but it seems even more tricky.
 // 3. Insert "Listen, " before statements (i.e. turns that do not finish
                  // with "?")
-                             if (interventionType == 1) {
-                                 text = " " + text + " ";
-                                 text = text.replaceAll("I\\s+", "you ")
-                                     .replaceAll("i\\s+", "you ")
-                                     .strip();
-                             } else if (interventionType == 2) {
-                                 String targetP;
-                                 if (sender.getUsername().equals("p1")) {
-                                     targetP = "p2";
-                                 } else {
-                                     targetP = "p1";
-                                 }
-                                 text = text + ", " + targetP;
-                             }
-                             else if (interventionType == 3) {
-                                 text = "Listen, " + text.substring(0,1).toLowerCase() + text.substring(1);
-                             }
+                 List<String> positiveEmojis = new ArrayList<String>(
+                                                                       Arrays.asList("😀", "😊", "😜", "😇", "😂", "😄", "😎"));
+
+                 List<String> negativeEmojis = new ArrayList<String>(
+                                                                       Arrays.asList("😔", "😫", "😨", "😞", "😭", "😓", "😖"));
+                     if (interventionType == 1) {
+                         if (congruent) {
+                             text = text + " " + negativeEmojis.get(new Random().nextInt(negativeEmojis.size()));;
+                         } else {
+                             text = text + " " + positiveEmojis.get(new Random().nextInt(positiveEmojis.size()));;
+                         }
+                     } 
                  
                              c.telegram_sendArtificialTurnFromApparentOriginToPermittedParticipants(sender, text);
                              this.timestampOfMostRecentQueueSend = new Date().getTime();
@@ -139,6 +136,15 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
                             this.htTurnOfLastIntervention.put(detectedParticipant,this.htTurns.get(detectedParticipant));
                             this.mode=this.normalconversation;
              }
+
+             if(this.relayPhotos && tmfc.u.hasMessage()&&  tmfc.u.getMessage().hasPhoto()){
+             c.telegram_relayMessagePhotoToOtherParticipants_By_File_ID(sender, tmfc);    
+             }
+             if(this.relayVoice && tmfc.u.hasMessage()&& tmfc.u.getMessage().hasVoice() ){
+                 c.telegram_relayMessageVoiceToOtherParticipants_By_File_ID(sender, tmfc);
+             }
+
+             
              // else {
              //     Conversation.printWSln("Main", "Message was sent while queue was not empty. This message has been enqueued.");
              //     this.messageQueue.add(tmfc);
@@ -149,6 +155,8 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
     }
 
     int turnsElapsedBeforeClarification = CustomDialog.getInteger("How many turns need to elapse between interventions? (per participant)", 5);
+    boolean congruent = CustomDialog.getBoolean("Congruent?");
+    
     // long durationToWaitAfterTargetBeforeIntervention = CustomDialog.getLong("Duration to wait after target detected, before sending clarification?", 6000);
     // long durationToWaitAfterIntervention =  CustomDialog.getLong("Duration to wait after sending intervention before resuming and sending messages from the queue?", 10000);
     // long durationBetweenMessagesWhenEmptyingQueueMin = CustomDialog.getLong("When emptying the queue, what is the gap between messages?", 3000);
@@ -177,6 +185,9 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
     
     
     
+    public static boolean stringContainsItemFromList(String inputStr, String[] items) {
+        return Arrays.stream(items).anyMatch(inputStr::contains);
+    }
     
     
     public synchronized long generateCheckIfStatement(TelegramParticipant sender, String t){
@@ -198,22 +209,47 @@ public class Telegram_Dyadic_Escalation extends TelegramController{
         int flipCoin = rand.nextInt(3);
         String haystack = " " + t.toLowerCase();
 
-        if (flipCoin == 0) { // search for I in statements
-            boolean containsI = (haystack + " ").contains(" i ");
-            if (containsI) {
-                produceIntervention = 1;
-            }
-        } else if (flipCoin == 1) {
-            if  (!(haystack.endsWith("?"))) {
-                produceIntervention = 2;
-         }
-        }
-         else {
-            if  (!(haystack.endsWith("?"))) {
-                produceIntervention = 3;
-         }
-        }
 
+        boolean containsDecision = stringContainsItemFromList(haystack + " ",
+                                                              new String[]{" kill ",
+                                                               " kick ",
+                                                               " lose ",
+                                                               " go for ",
+                                                               " drop ",
+                                                               " vote for ",
+                                                               " killing ",
+                                                               " throw ",
+                                                               " not keep ",
+                                                               "n't keep ",
+                                                               "n’t keep ",
+                                                               " not save ",
+                                                               "n't save ",
+                                                               "n’t save "
+                                                              });
+        if (containsDecision) {
+            produceIntervention = 1;
+        }
+                                                              
+                                                              
+
+        
+        // if (flipCoin == 0) { // search for I in statements
+        //     boolean containsI = (haystack + " ").contains(" i ");
+        //     if (containsI) {
+        //         produceIntervention = 1;
+        //     }
+        // } else if (flipCoin == 1) {
+        //     if  (!(haystack.endsWith("?"))) {
+        //         produceIntervention = 2;
+        //  }
+        // }
+        //  else {
+        //     if  (!(haystack.endsWith("?"))) {
+        //         produceIntervention = 3;
+        //  }
+        // }
+
+        // produceIntervention = 1;
 
         
 

@@ -21,7 +21,7 @@
         bash
         unzip 
         gnumake
-        jdk17
+        jdk
         maven
       ]);
     in
